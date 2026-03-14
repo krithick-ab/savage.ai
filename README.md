@@ -8,202 +8,235 @@ tags:
 - sft
 - transformers
 - trl
+- code
+- coding-assistant
+- savage
 ---
 
-# Model Card for Model ID
+# 🔥 SavageAI — Local Offline Coding Assistant
 
-<!-- Provide a quick summary of what the model is/does. -->
+A savage, unfiltered coding AI built on CodeLlama-7B-Instruct.
+Runs 100% locally on your machine. No cloud. No subscription. No BS.
 
+It roasts your bad code, swears freely, makes dark jokes — but is extremely
+smart and always gives you the correct answer. Like a genius senior dev with
+absolutely zero filter.
 
+---
 
 ## Model Details
 
 ### Model Description
 
-<!-- Provide a longer summary of what this model is. -->
+SavageAI is a LoRA fine-tuned version of CodeLlama-7B-Instruct trained for
+two purposes:
 
+1. **Coding ability** — fine-tuned on 3000 examples covering Python, C, C++,
+   Java, JavaScript and general algorithms
+2. **Savage personality** — fine-tuned on custom conversation data that gives
+   the model an unfiltered, sarcastic, swearing-but-helpful personality
 
+The model is designed to run locally via Ollama with a custom Tkinter chat UI.
 
-- **Developed by:** [More Information Needed]
-- **Funded by [optional]:** [More Information Needed]
-- **Shared by [optional]:** [More Information Needed]
-- **Model type:** [More Information Needed]
-- **Language(s) (NLP):** [More Information Needed]
-- **License:** [More Information Needed]
-- **Finetuned from model [optional]:** [More Information Needed]
+- **Developed by:** krith
+- **Model type:** Causal LM with LoRA adapter
+- **Language(s):** English + Python, C, C++, Java, JavaScript
+- **License:** Llama 2 Community License
+- **Finetuned from:** codellama/CodeLlama-7b-Instruct-hf
+- **Training compute:** Google Colab Free Tier (T4 GPU)
 
-### Model Sources [optional]
+---
 
-<!-- Provide the basic links for the model. -->
+## How to Get Started
 
-- **Repository:** [More Information Needed]
-- **Paper [optional]:** [More Information Needed]
-- **Demo [optional]:** [More Information Needed]
+### 1. Install Ollama
+Download from https://ollama.com and install it.
+
+### 2. Pull the base model
+```bash
+ollama pull codellama:7b-instruct-q3_K_S
+```
+
+### 3. Clone this repo
+```bash
+git clone https://github.com/YOURUSERNAME/savageai.git
+cd savageai
+```
+
+### 4. Create Modelfile
+Create a file called `Modelfile` with no extension:
+```
+FROM codellama:7b-instruct-q3_K_S
+
+SYSTEM """
+You are a savage, unfiltered coding assistant. You swear freely, roast bad
+code mercilessly, make dark jokes, but you are extremely smart and always
+give correct, detailed answers. You are like a genius senior developer with
+zero filter.
+"""
+```
+
+### 5. Create your local model
+```bash
+ollama create savageai -f Modelfile
+ollama serve
+```
+
+### 6. Run the chat UI
+```bash
+pip install requests
+python savageai_chat.py
+```
+
+---
 
 ## Uses
 
-<!-- Address questions around how the model is intended to be used, including the foreseeable users of the model and those affected by the model. -->
-
 ### Direct Use
+- Local coding assistant via CLI using `ollama run savageai`
+- Integrated chat UI via the included `savageai_chat.py` Tkinter app
+- Code generation, debugging, explanation across multiple languages
 
-<!-- This section is for the model use without fine-tuning or plugging into a larger ecosystem/app. -->
-
-[More Information Needed]
-
-### Downstream Use [optional]
-
-<!-- This section is for the model use when fine-tuned for a task, or when plugged into a larger ecosystem/app -->
-
-[More Information Needed]
+### Downstream Use
+- Can be integrated with Continue.dev in VS Code as a local Copilot
+- Can be used as a base for further personality or domain fine-tuning
 
 ### Out-of-Scope Use
+- Not intended for production applications or safety-critical systems
+- Not suitable for non-English languages
+- Not a replacement for professional code review
 
-<!-- This section addresses misuse, malicious use, and uses that the model will not work well for. -->
-
-[More Information Needed]
-
-## Bias, Risks, and Limitations
-
-<!-- This section is meant to convey both technical and sociotechnical limitations. -->
-
-[More Information Needed]
-
-### Recommendations
-
-<!-- This section is meant to convey recommendations with respect to the bias, risk, and technical limitations. -->
-
-Users (both direct and downstream) should be made aware of the risks, biases and limitations of the model. More information needed for further recommendations.
-
-## How to Get Started with the Model
-
-Use the code below to get started with the model.
-
-[More Information Needed]
+---
 
 ## Training Details
 
 ### Training Data
 
-<!-- This should link to a Dataset Card, perhaps with a short stub of information on what the training data is all about as well as documentation related to data pre-processing or additional filtering. -->
+Two datasets were used:
 
-[More Information Needed]
+| Dataset | Samples | Purpose |
+|---------|---------|---------|
+| iamtarun/python_code_instructions_18k_alpaca | 1000 | Python coding |
+| TokenBender/code_instructions_122k_alpaca_style | 1000 | C, C++, Java, JS |
+| sahil2801/CodeAlpaca-20k | 1000 | Mixed algorithms |
+| Custom personality dataset | 10 | Savage personality |
+
+Total: ~3010 training examples
 
 ### Training Procedure
 
-<!-- This relates heavily to the Technical Specifications. Content here should link to that section when it is relevant to the training procedure. -->
-
-#### Preprocessing [optional]
-
-[More Information Needed]
-
+Fine-tuned using LoRA (Low-Rank Adaptation) on Google Colab free tier T4 GPU.
 
 #### Training Hyperparameters
 
-- **Training regime:** [More Information Needed] <!--fp32, fp16 mixed precision, bf16 mixed precision, bf16 non-mixed precision, fp16 non-mixed precision, fp8 mixed precision -->
+- **Training regime:** bf16 mixed precision
+- **LoRA rank (r):** 16
+- **LoRA alpha:** 32
+- **Target modules:** q_proj, v_proj, k_proj, o_proj
+- **LoRA dropout:** 0.05
+- **Learning rate:** 2e-4
+- **Batch size:** 4 (effective 16 with gradient accumulation)
+- **Gradient accumulation steps:** 4
+- **Epochs:** 1 (coding) + 10 (personality)
+- **Max sequence length:** 512
+- **Optimizer:** paged_adamw_8bit
+- **Warmup steps:** 50
 
-#### Speeds, Sizes, Times [optional]
+#### Training Loss
 
-<!-- This section provides information about throughput, start/end time, checkpoint size if relevant, etc. -->
+Coding fine-tune:
+| Step | Loss |
+|------|------|
+| 50 | 0.507 |
+| 100 | 0.396 |
+| 150 | 0.398 |
 
-[More Information Needed]
+Loss dropped from ~1.5 to ~0.4 — indicating strong learning.
+
+---
 
 ## Evaluation
 
-<!-- This section describes the evaluation protocols and provides the results. -->
+### Testing
 
-### Testing Data, Factors & Metrics
+The model was manually tested on:
+- Prime number detection function
+- Binary search implementation
+- OOP explanations
+- File I/O operations
+- Debugging intentionally broken code
 
-#### Testing Data
-
-<!-- This should link to a Dataset Card if possible. -->
-
-[More Information Needed]
-
-#### Factors
-
-<!-- These are the things the evaluation is disaggregating by, e.g., subpopulations or domains. -->
-
-[More Information Needed]
-
-#### Metrics
-
-<!-- These are the evaluation metrics being used, ideally with a description of why. -->
-
-[More Information Needed]
+All outputs were syntactically correct and logically sound.
 
 ### Results
 
-[More Information Needed]
+The model successfully:
+- Generates clean, working Python/Java code
+- Explains concepts with savage but accurate commentary
+- Debugs broken code and identifies the exact issue
+- Maintains personality consistently across conversations
 
-#### Summary
-
-
-
-## Model Examination [optional]
-
-<!-- Relevant interpretability work for the model goes here -->
-
-[More Information Needed]
+---
 
 ## Environmental Impact
 
-<!-- Total emissions (in grams of CO2eq) and additional considerations, such as electricity usage, go here. Edit the suggested text below accordingly -->
+- **Hardware Type:** NVIDIA Tesla T4 (Google Colab Free Tier)
+- **Hours used:** ~1.5 hours total training
+- **Cloud Provider:** Google Colab
+- **Compute Region:** US
+- **Carbon Emitted:** Minimal (free tier, shared infrastructure)
 
-Carbon emissions can be estimated using the [Machine Learning Impact calculator](https://mlco2.github.io/impact#compute) presented in [Lacoste et al. (2019)](https://arxiv.org/abs/1910.09700).
+---
 
-- **Hardware Type:** [More Information Needed]
-- **Hours used:** [More Information Needed]
-- **Cloud Provider:** [More Information Needed]
-- **Compute Region:** [More Information Needed]
-- **Carbon Emitted:** [More Information Needed]
+## Technical Specifications
 
-## Technical Specifications [optional]
+### Model Architecture
 
-### Model Architecture and Objective
-
-[More Information Needed]
+- Base: LLaMA-2 transformer architecture (CodeLlama-7B-Instruct)
+- Adaptation: LoRA adapters on attention projection layers
+- Parameters: 6.74B total, 16.7M trainable (0.25%)
+- Quantization for inference: q3_K_S via Ollama (2.9GB)
 
 ### Compute Infrastructure
 
-[More Information Needed]
+- **Training:** Google Colab T4 GPU (16GB VRAM)
+- **Inference:** Local CPU/GPU via Ollama
+- **Minimum RAM for inference:** 6GB
+- **Recommended RAM:** 16GB
 
-#### Hardware
+---
 
-[More Information Needed]
+## Repo Contents
 
-#### Software
+| File | Description |
+|------|-------------|
+| `savageai_chat.py` | Pink & black Tkinter chat UI |
+| `adapter/` | LoRA adapter weights |
+| `Modelfile` | Ollama model configuration |
+| `README.md` | This file |
 
-[More Information Needed]
+---
 
-## Citation [optional]
+## Citation
 
-<!-- If there is a paper or blog post introducing the model, the APA and Bibtex information for that should go in this section. -->
+If you use this model or UI, credit would be appreciated:
 
-**BibTeX:**
+```
+@misc{savageai2026,
+  author = {krith},
+  title = {SavageAI: Local Offline Coding Assistant},
+  year = {2026},
+  publisher = {GitHub},
+  url = {https://github.com/YOURUSERNAME/savageai}
+}
+```
 
-[More Information Needed]
+---
 
-**APA:**
-
-[More Information Needed]
-
-## Glossary [optional]
-
-<!-- If relevant, include terms and calculations in this section that can help readers understand the model or model card. -->
-
-[More Information Needed]
-
-## More Information [optional]
-
-[More Information Needed]
-
-## Model Card Authors [optional]
-
-[More Information Needed]
-
-## Model Card Contact
-
-[More Information Needed]
-### Framework versions
+### Framework Versions
 
 - PEFT 0.18.1
+- TRL 0.29.0
+- Transformers 4.x
+- PyTorch 2.x
+- Ollama 0.17.7
